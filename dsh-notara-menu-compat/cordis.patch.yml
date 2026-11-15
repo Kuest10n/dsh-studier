@@ -1,0 +1,4 @@
+# dsh-notara-menu-compat：补回 Notara 侧栏会话菜单动作（0.2.2-rc.1 迁走旧 slot 协议）
+- insert:
+    - id: dsh-notara-menu-compat
+      name: dsh-notara-menu-compat

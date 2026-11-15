@@ -1,0 +1,51 @@
+{
+  "name": "dsh-studier-kit",
+  "version": "1.0.0",
+  "description": "studier 学习系统的 DSH 只读工具组：复习池/知识树状态/周考卷一致性校验/动态间隔排期/双态图谱投影。读取 E:\\studier\\vault 的四层 Markdown，绝不写入、绝不替学生学。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "scripts/",
+    "test/"
+  ],
+  "scripts": {
+    "test": "node test/run-tests.mjs",
+    "lint:skills": "node test/lint-skills.mjs",
+    "self-test": "node scripts/self-test.mjs",
+    "check": "node test/run-tests.mjs && node test/lint-skills.mjs && node scripts/self-test.mjs"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "studier",
+    "spaced-repetition",
+    "obsidian",
+    "study"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": ">=0.2.0-rc.1 <0.3.0-0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-tools": {
+      "optional": true
+    }
+  }
+}

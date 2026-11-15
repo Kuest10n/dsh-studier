@@ -1,0 +1,16 @@
+# dsh-studier-kit bundle patch
+#
+# 只读工具组：给本 profile 的所有 agent 注册三个 studier vault 工具。
+# 安装（本地开发，桌面端 profile）：
+#   dsh plugin --profile desktop add link:E:\studier\dsh-studier-kit
+# 或在 profiles/desktop/package.json 手工加：
+#   dependencies: { "dsh-studier-kit": "link:E:/studier/dsh-studier-kit" }
+#   dsh.profile.bundles 追加 "dsh-studier-kit"
+# 然后重启 DSH 客户端（新增 bundle 必须重启才加载）。
+#
+# vaultRoot 指向 studier 学习库；换机器时改这里，不改代码。
+- insert:
+    - id: dsh-studier-kit
+      name: 'dsh-studier-kit'
+      config:
+        vaultRoot: 'E:\studier\vault'

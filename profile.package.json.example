@@ -1,0 +1,32 @@
+{
+  "name": "studier-web-profile",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "description": "studier 学习工作台专用瘦身 DSH web 实例（Notara 全功能 + dsh-studier-kit）",
+  "dependencies": {
+    "@deepseek-ai/dsh": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.2-rc.1",
+    "@oh-my-student/dsh-bundle": "file:E:/studier/dsh-instance/vendor/notara-bundle",
+    "billion-context": "0.1.214",
+    "dsh-notara-menu-compat": "link:E:/studier/dsh-notara-menu-compat",
+    "dsh-studier-kit": "link:E:/studier/dsh-studier-kit"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "@oh-my-student/dsh-bundle",
+        "dsh-studier-kit",
+        "dsh-notara-menu-compat",
+        "@deepseek-ai/dsh-experimental-agent-team-profile",
+        "@deepseek-ai/dsh-experimental-auto-review",
+        "@deepseek-ai/dsh-experimental-forge-bundle",
+        "billion-context"
+      ]
+    }
+  }
+}
