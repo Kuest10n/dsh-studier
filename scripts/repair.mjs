@@ -8,12 +8,13 @@
  *   node E:\studier\dsh-instance\repair.mjs            # 实际修复（幂等）
  *   node E:\studier\dsh-instance\repair.mjs --check    # 只检查、绝不改动
  *
- * 五步：
- *   [1/5] 补 0.1.1 缺件：user-message-text.js / markdown-math.js
- *   [2/5] 重建 host-targets/@deepseek-ai 下 6 个 junction
- *   [3/5] 跑 Notara host-adapter：--restore → apply → --check
- *   [4/5] 校验 $DSH_HOME\skills 下 6 个 skill junction + SKILL.md frontmatter
- *   [5/5] 资料库文件删除补丁 patch-vault-delete.mjs（--check / --apply）
+ * 六步：
+ *   [1/6] 补 0.1.1 缺件：user-message-text.js / markdown-math.js
+ *   [2/6] 重建 host-targets/@deepseek-ai 下 6 个 junction
+ *   [3/6] 跑 Notara host-adapter：--restore → apply → --check
+ *   [4/6] 校验 $DSH_HOME\skills 下 6 个 skill junction + SKILL.md frontmatter
+ *   [5/6] 资料库文件删除补丁 patch-vault-delete.mjs（--check / --apply）
+ *   [6/6] Notara presets 兼容补丁 patch-presets-presentas.mjs（0.2.2 移除 presentAs）
  *
  * 依赖：仅 node: 内置模块（Node 22+，ESM）。不装包、不改 vault、不重启服务。
  * 幂等：重复执行不产生新副作用；已就绪的项一律打印「·」并说明跳过原因。
@@ -315,7 +316,7 @@ function fail(msg) {
 }
 
 // ---------------------------------------------------------------------------
-// [1/5] 修复 0.1.1 缺件
+// [1/6] 修复 0.1.1 缺件
 // ---------------------------------------------------------------------------
 
 /**
@@ -355,7 +356,7 @@ function findGraphCopies() {
 }
 
 function step1() {
-  out(`[1/5] 补 0.1.1 缺件（${SOURCE_PATCHES.map((p) => path.basename(p.target)).join(' / ')}）`);
+  out(`[1/6] 补 0.1.1 缺件（${SOURCE_PATCHES.map((p) => path.basename(p.target)).join(' / ')}）`);
 
   for (const p of SOURCE_PATCHES) {
     if (!existsSync(p.vendor)) {
@@ -449,11 +450,11 @@ function step1() {
 }
 
 // ---------------------------------------------------------------------------
-// [2/5] 重建 host-targets junction 农场
+// [2/6] 重建 host-targets junction 农场
 // ---------------------------------------------------------------------------
 
 function step2() {
-  out('[2/5] 重建 host-targets 下 6 个 junction → pnpm store 真实目录');
+  out('[2/6] 重建 host-targets 下 6 个 junction → pnpm store 真实目录');
 
   for (const name of HOST_PACKAGES) {
     const full = `@deepseek-ai/${name}`;
@@ -487,7 +488,7 @@ function step2() {
 }
 
 // ---------------------------------------------------------------------------
-// [3/5] 跑 Notara host-adapter
+// [3/6] 跑 Notara host-adapter
 // ---------------------------------------------------------------------------
 
 /**
@@ -539,7 +540,7 @@ function runAdapter(adapter, args) {
 
 function step3() {
   const chatDir = path.join(HOST_TARGETS, 'dsh-client-ui-chat');
-  out(`[3/5] 运行 host-adapter（--host ${chatDir}）`);
+  out(`[3/6] 运行 host-adapter（--host ${chatDir}）`);
 
   const found = resolveAdapterPath();
   if (!found) {
@@ -547,6 +548,33 @@ function step3() {
     return;
   }
   ok(`adapter 真实路径：${found.adapter}`);
+
+  // 【LaTeX 修复】host-adapter.mjs import 的就是同目录的 math-adapter.mjs。
+  // 双宿主 0.1.2 版把 web 补丁里的 wb()=mathFromMarkdown() 误删，导致 $...$ 空白。
+  // 必须在跑 host-adapter 之前先把这个源文件修好，否则 apply 生成的仍是坏 asset。
+  // 放在 step3 内部而非另起一步：pnpm 重装后 math-adapter 会被还原，repair 每次都先补。
+  const mathPatch = path.join(INSTANCE_DIR, 'patch-notara-math.mjs');
+  if (existsSync(mathPatch)) {
+    const env = {
+      ...process.env,
+      DSH_PROFILE_NODE_MODULES: PROFILE_NM,
+    };
+    const mp = spawnSync(process.execPath, [mathPatch, CHECK_ONLY ? '--check' : '--apply'], {
+      stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', env,
+    });
+    const mpTail = ((mp.stdout || '') + (mp.stderr || '')).trim().split('\n').slice(-4).map((l) => '      ' + l).join('\n');
+    if (mp.status === 0) {
+      skip('math-adapter 的 wb() 修复已就位（LaTeX 空白根因）');
+    } else if (CHECK_ONLY) {
+      need('math-adapter 的 wb() 修复未打全（重新运行不带 --check 即可修复）');
+      if (mpTail) out(mpTail);
+    } else {
+      // apply 仍失败属于致命：后面 host-adapter 会用未修的源文件生成坏 asset。
+      fail(`math-adapter 的 wb() 修复执行失败（退出码 ${mp.status}）`);
+      if (mpTail) out(mpTail);
+      return;
+    }
+  }
 
   if (!existsSync(chatDir) || !statSync(chatDir).isDirectory()) {
     fail(`--host 目录不可用：${chatDir}`);
@@ -633,11 +661,11 @@ function step3() {
 const indent = (s) => s.split('\n').map((l) => '      ' + l).join('\n');
 
 // ---------------------------------------------------------------------------
-// [4/5] 校验 skills junction + SKILL.md frontmatter
+// [4/6] 校验 skills junction + SKILL.md frontmatter
 // ---------------------------------------------------------------------------
 
 function step4() {
-  out(`[4/5] 校验 skills junction（${SKILLS_DST} → ${SKILLS_SRC}）`);
+  out(`[4/6] 校验 skills junction（${SKILLS_DST} → ${SKILLS_SRC}）`);
 
   if (!existsSync(SKILLS_SRC)) {
     fail(`skill 真源目录不存在：${SKILLS_SRC}`);
@@ -677,11 +705,11 @@ function step4() {
 }
 
 // ---------------------------------------------------------------------------
-// [5/5] 资料库文件删除补丁（patch-vault-delete.mjs）
+// [5/6] 资料库文件删除补丁（patch-vault-delete.mjs）
 // ---------------------------------------------------------------------------
 
 function step5() {
-  out(`[5/5] 资料库文件删除补丁（patch-vault-delete.mjs）`);
+  out(`[5/6] 资料库文件删除补丁（patch-vault-delete.mjs）`);
   const patch = path.join(INSTANCE_DIR, 'patch-vault-delete.mjs');
   if (!existsSync(patch)) {
     fail(`找不到 patch-vault-delete.mjs（${patch}）`);
@@ -704,6 +732,36 @@ function step5() {
     if (tail) out(tail);
   } else {
     fail(`资料库删除补丁执行失败（退出码 ${r.status}）`);
+    if (tail) out(tail);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// [6/6] Notara presets 兼容补丁（patch-presets-presentas.mjs）
+// ---------------------------------------------------------------------------
+
+function step6() {
+  out(`[6/6] Notara presets 兼容补丁（patch-presets-presentas.mjs）`);
+  const patch = path.join(INSTANCE_DIR, 'patch-presets-presentas.mjs');
+  if (!existsSync(patch)) {
+    fail(`找不到 patch-presets-presentas.mjs（${patch}）`);
+    return;
+  }
+  const env = {
+    ...process.env,
+    DSH_PROFILE_NODE_MODULES: path.join(DSH_HOME, 'profiles', 'web', 'node_modules'),
+  };
+  const mode = CHECK_ONLY ? '--check' : '--apply';
+  const r = spawnSync(process.execPath, [patch, mode], { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', env });
+  const tail = ((r.stdout || '') + (r.stderr || '')).trim().split('\n').slice(-6).map((l) => '      ' + l).join('\n');
+  if (r.status === 0) {
+    if (CHECK_ONLY) skip('presentAs 兼容补丁已全副本生效');
+    else ok('presentAs 兼容补丁：所有副本已就绪（幂等）');
+  } else if (CHECK_ONLY) {
+    need('presentAs 兼容补丁尚未打全（重新运行不带 --check 即可修复）');
+    if (tail) out(tail);
+  } else {
+    fail(`presentAs 兼容补丁执行失败（退出码 ${r.status}）`);
     if (tail) out(tail);
   }
 }
@@ -747,6 +805,7 @@ function main() {
   step3();
   step4();
   step5();
+  step6();
 
   out('');
   if (CHECK_ONLY) {

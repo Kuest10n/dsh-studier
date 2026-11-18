@@ -11,7 +11,9 @@
 | [`dsh-studier-kit/`](dsh-studier-kit/) | 5 个只读学习工具：复习池 / 知识树体检 / 周考卷校验 / 动态间隔排期 / 知识图谱双态投影 | 自研 |
 | [`dsh-notara-menu-compat/`](dsh-notara-menu-compat/) | 修复 Notara bundle 在 DSH 0.2.2-rc.1 下「无法归档对话」的兼容插件 | 自研 |
 | `scripts/patch-vault-delete.mjs` | 补上 Notara bundle 缺失的「资料库文件删除」——后端 `delete` RPC + 前端删除按钮，对齐 pnpm store 全部副本（幂等，`--check/--apply/--reapply/--restore`） | 自研补丁 |
-| [`scripts/`](scripts/) | `repair.mjs`（一键修复/体检，含自动打删除补丁）、`install.ps1`（安装+体检）、桌面启动器 `launch.ps1` / `stop.ps1` + 图标 | 自研 |
+| `scripts/patch-notara-math.mjs` | 修 0.2.2-rc.1 双宿主 `math-adapter.mjs` web 分支漏 `wb()`（`mathFromMarkdown`）导致聊天里 `$...$` 整段消失；对齐 7 份副本 | 自研补丁 |
+| `scripts/patch-presets-presentas.mjs` | 修 Notara presets 0.1.1 无条件调 `ctx.tools.presentAs`（DSH 0.2.2 已移除）导致教学子会话/团队通道报 TypeError；改为条件调用 | 自研补丁 |
+| [`scripts/`](scripts/) | `repair.mjs`（一键修复/体检，六步自动打以上三个补丁）、`install.ps1`（安装+体检）、桌面启动器 `launch.ps1` / `stop.ps1` + 图标、三个补丁的回归测试 | 自研 |
 | [`profile.package.json.example`](profile.package.json.example) | 独立瘦身 DSH web 实例的 profile 清单模板 | 配置样例 |
 
 与 [Notara-DSH](https://github.com/TongZi2003/Notara-DSH)（@oh-my-student/dsh-bundle）配合使用——本仓库**不含** Notara 本体，只含自研增量与适配层。Notara 提供资料工作台 / 图谱 / 日历 / 课堂计时；dsh-studier 在其上补调度、投影与周考链路。
@@ -40,8 +42,8 @@ cd dsh-studier
 # 2. profile 配置：复制 profile.package.json.example 到 $DSH_HOME\profiles\web\package.json
 #    按注释改 file:/link: 路径后 pnpm install
 
-# 3. 一键体检/修复（缺件修补 + junction + host-adapter + skills 校验 + 资料库删除补丁，幂等）
-#    会调用 patch-vault-delete.mjs --apply，重装 / 升级宿主后重跑一次即可
+# 3. 一键体检/修复（六步：缺件修补 + junction + host-adapter〔先修正 math-adapter 源〕 + skills 校验 + 三个兼容补丁，幂等）
+#    重装 / 升级宿主后重跑一次即可
 node scripts/repair.mjs
 
 # 4. 启动
@@ -82,9 +84,13 @@ cd dsh-studier-kit
 pnpm test        # 34 项回归（fixture vault，不碰真实数据）
 npm run self-test  # 真实 vault 冒烟（形状契约 + 不抛错）
 
-# 资料库删除补丁自检（node scripts/ 目录）
-node scripts/patch-vault-delete.mjs --check   # 全副本补丁状态
-node scripts/test-vault-delete.mjs            # 删除 RPC fixture：15 项
+# 三个补丁的体检与回归（在仓库根目录）
+node scripts/patch-vault-delete.mjs --check          # 资料库删除：全副本 applied
+node scripts/test-vault-delete.mjs                  # 删除 RPC fixture：15 项
+node scripts/patch-notara-math.mjs --check          # LaTeX：7 份 math-adapter 源已修
+node scripts/patch-presets-presentas.mjs --check   # presentAs：3 份 policy.js 已修
+node scripts/test-presets-presentas.mjs             # presentAs 单元：8 项
+node scripts/repair.mjs --check                    # 实例六步体检（应报「全部已就绪」）
 ```
 
 ## 已知边界与设计红线
