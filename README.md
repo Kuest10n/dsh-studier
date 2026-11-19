@@ -12,7 +12,7 @@
 | [`dsh-notara-menu-compat/`](dsh-notara-menu-compat/) | 修复 Notara bundle 在 DSH 0.2.2-rc.1 下「无法归档对话」的兼容插件 | 自研 |
 | `scripts/patch-vault-delete.mjs` | 补上 Notara bundle 缺失的「资料库文件删除」——后端 `delete` RPC + 前端删除按钮，对齐 pnpm store 全部副本（幂等，`--check/--apply/--reapply/--restore`） | 自研补丁 |
 | `scripts/patch-notara-math.mjs` | 修 0.2.2-rc.1 双宿主 `math-adapter.mjs` web 分支漏 `wb()`（`mathFromMarkdown`）导致聊天里 `$...$` 整段消失；对齐 7 份副本 | 自研补丁 |
-| `scripts/patch-presets-presentas.mjs` | 修 Notara presets 0.1.1 无条件调 `ctx.tools.presentAs`（DSH 0.2.2 已移除）导致教学子会话/团队通道报 TypeError；改为条件调用 | 自研补丁 |
+| `scripts/patch-presets-presentas.mjs` | 修 Notara presets 0.1.1 与 DSH 0.2.2 的三处契约差异：`ctx.tools.presentAs` 已被移除、`system-prompt/assemble` 监听器里 `result.tools` 恒为 undefined（tools 在 waterfall 之后才挂）、`agent/pre-step` 的 `decision.messages` 可能缺失 → 子会话 `turn/start` 后 10ms 就 `Cannot read properties of undefined (reading 'filter')`，`subagent` 只回一句 `subagent run failed` | 自研补丁 |
 | [`scripts/`](scripts/) | `repair.mjs`（一键修复/体检，六步自动打以上三个补丁）、`install.ps1`（安装+体检）、桌面启动器 `launch.ps1` / `stop.ps1` + 图标、三个补丁的回归测试 | 自研 |
 | [`profile.package.json.example`](profile.package.json.example) | 独立瘦身 DSH web 实例的 profile 清单模板 | 配置样例 |
 
@@ -88,8 +88,8 @@ npm run self-test  # 真实 vault 冒烟（形状契约 + 不抛错）
 node scripts/patch-vault-delete.mjs --check          # 资料库删除：全副本 applied
 node scripts/test-vault-delete.mjs                  # 删除 RPC fixture：15 项
 node scripts/patch-notara-math.mjs --check          # LaTeX：7 份 math-adapter 源已修
-node scripts/patch-presets-presentas.mjs --check   # presentAs：3 份 policy.js 已修
-node scripts/test-presets-presentas.mjs             # presentAs 单元：8 项
+node scripts/patch-presets-presentas.mjs --check   # presets 兼容：3 份 policy.js 已修（presentAs + assemble + pre-step）
+node scripts/test-presets-presentas.mjs             # presets 兼容单元：19 项
 node scripts/repair.mjs --check                    # 实例六步体检（应报「全部已就绪」）
 ```
 

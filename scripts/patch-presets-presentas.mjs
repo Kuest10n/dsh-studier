@@ -57,8 +57,35 @@ const TO = [
   "      } catch (error) {",
 ].join('\n');
 
+// P2：system-prompt/assemble 监听器假设 result.tools 存在。
+// dsh 0.2.2 里 tools 是在 waterfall 返回之后才挂上去的（SystemPrompt.assemble 先建
+// {sections,contexts,variables}，跑完 waterfall 才 return {...transformed, tools}）。
+// 因此监听器里 result.tools 恒为 undefined，对该 scope 的 Agent 执行 .filter 直接抛
+// TypeError: Cannot read properties of undefined (reading 'filter')，子会话第一轮就死。
+// 修法：工具裁剪本来就是 restrict/guard 的职责，这里仅在有 tools 时再裁。
+const FROM2 = "    return { ...result, tools: result.tools.filter(tool => allowed.has(tool.name)) };";
+
+const TO2 = [
+  "    // studier compat: dsh 0.2.2 attaches `tools` only after this waterfall returns.",
+  "    if (!Array.isArray(result.tools)) return result;",
+  "    return { ...result, tools: result.tools.filter(tool => allowed.has(tool.name)) };",
+].join('\n');
+
+// P3：agent/pre-step 监听器假设 decision.messages 存在（某些 next() 结果不含 messages）。
+const FROM3 = "    return {...decision,messages:decision.messages.filter(message=>!blind||message.source?.kind!=='working-directory').map(message=>initialChild&&message.source?.kind==='user'&&!message.source.rpcId?{...message,source:{kind:'notara-child-handoff',form:'relay'}}:message)};";
+
+const TO3 = [
+  "    // studier compat: some 0.2.2 next() results omit messages; keep the decision intact.",
+  "    if (!Array.isArray(decision.messages)) return decision;",
+  "    return {...decision,messages:decision.messages.filter(message=>!blind||message.source?.kind!=='working-directory').map(message=>initialChild&&message.source?.kind==='user'&&!message.source.rpcId?{...message,source:{kind:'notara-child-handoff',form:'relay'}}:message)};",
+].join('\n');
+
 const PATCHES = {
-  'plugin-presets/policy.js': [{ id: 'P1-presentas-guard', from: FROM, to: TO }],
+  'plugin-presets/policy.js': [
+    { id: 'P1-presentas-guard', from: FROM, to: TO },
+    { id: 'P2-assemble-tools-guard', from: FROM2, to: TO2 },
+    { id: 'P3-prestep-messages-guard', from: FROM3, to: TO3 },
+  ],
 };
 
 function targets() {

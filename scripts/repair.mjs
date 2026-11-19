@@ -14,7 +14,7 @@
  *   [3/6] 跑 Notara host-adapter：--restore → apply → --check
  *   [4/6] 校验 $DSH_HOME\skills 下 6 个 skill junction + SKILL.md frontmatter
  *   [5/6] 资料库文件删除补丁 patch-vault-delete.mjs（--check / --apply）
- *   [6/6] Notara presets 兼容补丁 patch-presets-presentas.mjs（0.2.2 移除 presentAs）
+ *   [6/6] Notara presets 兼容补丁 patch-presets-presentas.mjs（0.2.2 移除 presentAs + assemble 无 tools + pre-step 无 messages）
  *
  * 依赖：仅 node: 内置模块（Node 22+，ESM）。不装包、不改 vault、不重启服务。
  * 幂等：重复执行不产生新副作用；已就绪的项一律打印「·」并说明跳过原因。
@@ -741,7 +741,7 @@ function step5() {
 // ---------------------------------------------------------------------------
 
 function step6() {
-  out(`[6/6] Notara presets 兼容补丁（patch-presets-presentas.mjs）`);
+  out(`[6/6] Notara presets 兼容补丁（presentAs / assemble / pre-step）`);
   const patch = path.join(INSTANCE_DIR, 'patch-presets-presentas.mjs');
   if (!existsSync(patch)) {
     fail(`找不到 patch-presets-presentas.mjs（${patch}）`);
@@ -755,13 +755,13 @@ function step6() {
   const r = spawnSync(process.execPath, [patch, mode], { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', env });
   const tail = ((r.stdout || '') + (r.stderr || '')).trim().split('\n').slice(-6).map((l) => '      ' + l).join('\n');
   if (r.status === 0) {
-    if (CHECK_ONLY) skip('presentAs 兼容补丁已全副本生效');
-    else ok('presentAs 兼容补丁：所有副本已就绪（幂等）');
+    if (CHECK_ONLY) skip('Notara presets 兼容补丁已全副本生效（presentAs + assemble + pre-step）');
+    else ok('Notara presets 兼容补丁：所有副本已就绪（幂等）');
   } else if (CHECK_ONLY) {
-    need('presentAs 兼容补丁尚未打全（重新运行不带 --check 即可修复）');
+    need('Notara presets 兼容补丁尚未打全（重新运行不带 --check 即可修复）');
     if (tail) out(tail);
   } else {
-    fail(`presentAs 兼容补丁执行失败（退出码 ${r.status}）`);
+    fail(`Notara presets 兼容补丁执行失败（退出码 ${r.status}）`);
     if (tail) out(tail);
   }
 }
